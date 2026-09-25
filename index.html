@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Пульс посещаемости</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --panel:#ffffff; --fill:#f4f6f9; --line:#e4e7ed; --axis:#cbd0da;
+  --ink:#232833; --ink-2:#586173; --ink-3:#878f9e;
+  --accent:#3a78e0; --accent-soft:#eaf1fd;
+  --ok:#12b894; --late:#eda100; --abs:#c23a5c; --ok-track:#dcf3ec;
+  --good-ink:#0b7a4c; --warn-ink:#8a5800; --bad-ink:#b1284b;
+  --good-soft:#e2f5ec; --warn-soft:#fdf1d6; --bad-soft:#fbe7ed;
+  --spark:#a3abb9;
+  --h0:#fbf3df; --h1:#f7da92; --h2:#eda100; --h3:#b67300; --h4:#6f4300;
+  --tip:#ffffff; --shadow:0 8px 28px rgba(22,30,48,.14);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14171d; --panel:#1a1d24; --fill:#232733; --line:#2b303b; --axis:#3c4250;
+    --ink:#edf0f5; --ink-2:#b3bac7; --ink-3:#868e9d;
+    --accent:#6ea3ff; --accent-soft:#1f2b44;
+    --ok:#18a888; --late:#c98500; --abs:#ad3a58; --ok-track:#1d3931;
+    --good-ink:#4fd39c; --warn-ink:#f1c15a; --bad-ink:#ff8299;
+    --good-soft:#17332a; --warn-soft:#3a2e12; --bad-soft:#3d1c26;
+    --spark:#5b6475;
+    --h0:#27261f; --h1:#4f4017; --h2:#8c610c; --h3:#d0930f; --h4:#f7c65a;
+    --tip:#232833; --shadow:0 8px 28px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14171d; --panel:#1a1d24; --fill:#232733; --line:#2b303b; --axis:#3c4250;
+  --ink:#edf0f5; --ink-2:#b3bac7; --ink-3:#868e9d;
+  --accent:#6ea3ff; --accent-soft:#1f2b44;
+  --ok:#18a888; --late:#c98500; --abs:#ad3a58; --ok-track:#1d3931;
+  --good-ink:#4fd39c; --warn-ink:#f1c15a; --bad-ink:#ff8299;
+  --good-soft:#17332a; --warn-soft:#3a2e12; --bad-soft:#3d1c26;
+  --spark:#5b6475;
+  --h0:#27261f; --h1:#4f4017; --h2:#8c610c; --h3:#d0930f; --h4:#f7c65a;
+  --tip:#232833; --shadow:0 8px 28px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"Open Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{padding-block:18px 22px;padding-inline:20px;display:flex;flex-direction:column;gap:16px}
+h1,h2{margin:0;text-wrap:balance}
+h1{font-size:18px;font-weight:700;letter-spacing:-.005em}
+h2{font-size:14px;font-weight:600}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 20px}
+.meta{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:4px;color:var(--ink-2);font-size:12.5px}
+.meta span+span::before{content:"";display:inline-block;width:3px;height:3px;border-radius:50%;background:var(--ink-3);vertical-align:middle;margin:-2px 10px 0 -8px}
+.ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.demo{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--warn-ink);background:var(--warn-soft);padding:4px 10px;border-radius:999px;letter-spacing:.01em}
+.demo::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+select{appearance:none;-webkit-appearance:none;height:34px;min-width:230px;max-width:100%;padding:0 32px 0 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23878f9e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+select:hover{border-color:var(--axis)}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tile{background:var(--panel);padding:14px 16px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tl{font-size:12px;color:var(--ink-2);font-weight:600}
+.tv{font-size:28px;font-weight:600;line-height:1.2;letter-spacing:-.01em;margin-top:2px}
+.tv .u{font-size:15px;font-weight:600;color:var(--ink-2);margin-left:3px;letter-spacing:0}
+.ts{font-size:12px;color:var(--ink-3)}
+.td{font-size:12px;font-weight:600;margin-top:4px}
+.td.good{color:var(--good-ink)} .td.bad{color:var(--bad-ink)} .td.flat{color:var(--ink-3)}
+.sp{display:block;width:100%;height:34px;margin-top:6px}
+.sp-line{fill:none;stroke:var(--spark);stroke-width:1.75;stroke-linejoin:round;stroke-linecap:round}
+.sp-area{fill:var(--spark);opacity:.16}
+.sp-dot{fill:var(--accent);stroke:var(--panel);stroke-width:2}
+
+/* panels */
+.row{display:grid;gap:16px}
+.r1{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.r2{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px 14px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.ph{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:6px 16px}
+.ph p{font-size:12px;color:var(--ink-3);margin-top:2px;max-width:60ch}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);padding-top:2px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none}
+.sw.ok{background:var(--ok)} .sw.late{background:var(--late)} .sw.abs{background:var(--abs)}
+.chart{position:relative;min-width:0}
+.chart svg{display:block}
+
+svg text{font-family:inherit}
+.grid{stroke:var(--line);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.tick{fill:var(--ink-3);font-size:11px;font-variant-numeric:tabular-nums}
+.tick.hol{fill:var(--axis)}
+.tick.wd{font-size:10px}
+.m-ok{fill:var(--ok)} .m-late{fill:var(--late)} .m-abs{fill:var(--abs)}
+.holiday{fill:var(--fill)}
+.band{fill:var(--fill)}
+.hit{fill:transparent;outline:none}
+.hit:focus-visible{stroke:var(--accent);stroke-width:2}
+.ann{fill:var(--ink);font-size:11px;font-weight:600}
+.ann-m{fill:var(--ink-3);font-size:10.5px}
+.rule{stroke:var(--ink-2);stroke-width:1}
+.grace{fill:var(--ok);opacity:.08}
+.rule-l{fill:var(--ink-2);font-size:11px;font-weight:600}
+
+.facts{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:12px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:10px}
+.facts b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+
+details{border-top:1px solid var(--line);padding-top:8px}
+summary{cursor:pointer;color:var(--accent);font-size:12px;font-weight:600;width:max-content;max-width:100%}
+.tscroll{overflow-x:auto;margin-top:8px;max-height:260px;overflow-y:auto}
+
+/* heatmap */
+.heat{display:grid;grid-template-columns:minmax(142px,1.5fr) repeat(5,minmax(0,1fr));gap:2px;align-items:stretch}
+.hh{font-size:11px;color:var(--ink-3);text-align:center;padding-bottom:3px;font-weight:600}
+.hl{background:none;border:0;padding:0 8px 0 0;min-width:0;overflow-wrap:anywhere;text-align:left;font-size:12px;color:var(--ink-2);cursor:pointer;display:flex;align-items:center;gap:6px;line-height:1.25;border-radius:4px}
+.hl:hover{color:var(--ink)}
+.hl.sel{color:var(--ink);font-weight:700}
+.hl.sel::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+.hl.total{font-weight:600;color:var(--ink)}
+.hc{height:38px;display:grid;place-items:center;font-size:12px;font-weight:600;border-radius:3px;font-variant-numeric:tabular-nums;outline:none}
+.hc:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+.hsep{grid-column:1/-1;height:6px}
+.hlegend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.hlegend .g{height:8px;flex:0 1 160px;border-radius:2px}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font-size:11.5px;font-weight:600;color:var(--ink-3);text-align:left;padding:0 8px 8px;white-space:nowrap}
+td{padding:9px 8px;border-top:1px solid var(--line);vertical-align:middle}
+th:first-child,td:first-child{padding-left:0}
+th.n,td.n{text-align:right}
+tr.sel td{background:var(--accent-soft)}
+tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent);padding-left:8px}
+.rb{background:none;border:0;padding:0;text-align:left;cursor:pointer;font-weight:600;color:var(--ink);line-height:1.3}
+.rb:hover{color:var(--accent)}
+.pb{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.pb .trk{width:64px;height:6px;border-radius:3px;background:var(--ok-track);overflow:hidden}
+.pb .fl{height:100%;background:var(--ok);border-radius:3px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 9px 2px 3px;border-radius:999px;white-space:nowrap}
+.pill i{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:10.5px;font-weight:700;background:currentColor}
+.pill i span{color:var(--panel)}
+.pill.good{color:var(--good-ink);background:var(--good-soft)}
+.pill.warn{color:var(--warn-ink);background:var(--warn-soft)}
+.pill.bad{color:var(--bad-ink);background:var(--bad-soft)}
+.dt td,.dt th{font-size:12.5px}
+.dtab td,.dtab th{font-size:12px;padding-top:6px;padding-bottom:6px}
+.dtab tr.hol td{color:var(--ink-3);font-style:italic}
+
+.note{font-size:12px;color:var(--ink-3);max-width:110ch;line-height:1.55}
+
+/* tooltip */
+.tip{position:fixed;z-index:10;pointer-events:none;background:var(--tip);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:9px 11px;font-size:12px;min-width:170px;max-width:260px}
+.tip .th{font-weight:700;margin-bottom:5px}
+.tip .tr{display:flex;align-items:center;gap:7px;line-height:1.7}
+.tip .tr span{color:var(--ink-2);flex:1}
+.tip .tr b{font-weight:600;font-variant-numeric:tabular-nums}
+.tip .tf{margin-top:5px;padding-top:5px;border-top:1px solid var(--line);color:var(--ink-2)}
+
+@media (max-width:1000px){
+  .r1,.r2{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:720px){
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wrap{padding-inline:16px}
+  select{min-width:0;width:100%}
+  .ctl{width:100%}
+  .ctl label{flex:1}
+}
+@media (max-width:420px){
+  .tv{font-size:24px}
+  .tile{padding:12px 12px 8px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .pb .fl{transition:width .25s ease}
+}
+</style>
+</head>
+<body style="margin:0">
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Пульс посещаемости</h1>
+      <p class="meta"><span>1–24 сентября 2026</span><span>17 рабочих дней</span><span>Смена с 09:00, допуск 5 мин</span><span id="hc">41 сотрудник по графику</span></p>
+    </div>
+    <div class="ctl">
+      <span class="demo">Демо-данные</span>
+      <label><span class="sr">Подразделение</span>
+        <select id="dept">
+          <option value="all">Все подразделения</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <section class="tiles" id="tiles" aria-label="Ключевые показатели"></section>
+
+  <div class="row r1">
+    <section class="panel">
+      <div class="ph">
+        <div><h2>Опоздания и неявки по дням</h2><p>Сколько человек пришли позже 09:05 или не отметили приход</p></div>
+        <div class="legend"><span><i class="sw late"></i>Опоздали</span><span><i class="sw abs"></i>Не пришли</span></div>
+      </div>
+      <div class="chart" id="daily"></div>
+      <details>
+        <summary>Данные по дням</summary>
+        <div class="tscroll"><table class="dtab" id="dayTable"></table></div>
+      </details>
+    </section>
+    <section class="panel">
+      <div class="ph">
+        <div><h2>Во сколько приходят</h2><p>Отметки прихода за период с шагом 5 минут</p></div>
+        <div class="legend"><span><i class="sw ok"></i>Вовремя</span><span><i class="sw late"></i>Опоздали</span></div>
+      </div>
+      <div class="chart" id="hist"></div>
+      <p class="facts" id="histFacts"></p>
+    </section>
+  </div>
+
+  <div class="row r2">
+    <section class="panel">
+      <div class="ph">
+        <div><h2>Опоздания по дням недели</h2><p>Доля смен с опозданием. Нажмите на подразделение, чтобы отфильтровать дашборд</p></div>
+      </div>
+      <div class="heat" id="heat" role="table" aria-label="Доля опозданий по подразделениям и дням недели"></div>
+      <div class="hlegend" id="hlegend"></div>
+    </section>
+    <section class="panel">
+      <div class="ph">
+        <div><h2>Подразделения</h2><p>Сначала те, где пунктуальность ниже. Норма от 90%, внимание 80–90%, риск ниже 80%</p></div>
+      </div>
+      <div class="tscroll" style="max-height:none;margin-top:0"><table class="dt" id="deptTable"></table></div>
+    </section>
+  </div>
+
+  <p class="note">Демо-данные сгенерированы для примера. 1 сентября — выходной, День независимости. Опоздание — приход позже 09:05, потерянное время считается от 09:00. Сотрудник без графика в расчётах не участвует. Сравнение с августом — по среднему за рабочий день.</p>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+
+/* ---------- формат ---------- */
+const fmt1 = n => n.toLocaleString("ru-RU",{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmt0 = n => Math.round(n).toLocaleString("ru-RU");
+const pct1 = p => fmt1(p*100)+"%";
+const hhmm = m => { m = Math.round(m); return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
+function plural(n, f){ n = Math.abs(Math.round(n)); const a = n%100, b = n%10; if(a>10 && a<20) return f[2]; if(b===1) return f[0]; if(b>1 && b<5) return f[1]; return f[2]; }
+const WD_S = ["вс","пн","вт","ср","чт","пт","сб"];
+const WD_F = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
+
+/* ---------- демо-данные ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const rnd = mulberry32(20260925);
+const gauss = () => { let u = 0; while(!u) u = rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*rnd()); };
+const expo = m => -Math.log(1-rnd())*m;
+
+const DEPTS = [
+  {id:"adm", short:"Административный", name:"Административный департамент", n:6, noSched:1, late:.07, abs:.025, lm:11},
+  {id:"log", short:"Логистика", name:"Департамент логистики", n:7, late:.13, abs:.045, lm:16},
+  {id:"lea", short:"Лизинг", name:"Департамент по лизингу", n:8, late:.11, abs:.035, lm:14},
+  {id:"ret", short:"Розничные продажи", name:"Розничные продажи и операции", n:12, late:.2, abs:.06, lm:21},
+  {id:"fin", short:"Финансы", name:"Финансовый департамент", n:9, late:.05, abs:.02, lm:9}
+];
+const DEPT = Object.fromEntries(DEPTS.map(d => [d.id, d]));
+const HOLIDAYS = {"2026-09-01":"День независимости"};
+
+function workdays(y, m, from, to){
+  const out = [];
+  for(let d = from; d <= to; d++){
+    const w = new Date(y, m, d).getDay();
+    if(w === 0 || w === 6) continue;
+    const key = y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+    out.push({d, w, holiday: HOLIDAYS[key] || null});
+  }
+  return out;
+}
+const SEP = workdays(2026, 8, 1, 24);
+const AUG = workdays(2026, 7, 1, 31);
+const WORK = SEP.filter(d => !d.holiday);
+const N_SEP = WORK.length, N_AUG = AUG.length;
+
+const EMP = [];
+DEPTS.forEach(dp => { for(let i = 0; i < dp.n; i++) EMP.push({dept:dp.id, sched: i >= (dp.noSched||0), fl: .35+rnd()*1.3, fa: .4+rnd()*1.2, lm: .7+rnd()*.7}); });
+EMP.filter(e => e.dept === "ret" && e.sched)[2].fl = 2.6;
+EMP.filter(e => e.dept === "log" && e.sched)[1].fl = 2.1;
+
+const WL = {1:1.45, 2:.95, 3:.85, 4:.9, 5:1.25};
+const WA = {1:1.3, 2:.9, 3:.9, 4:1, 5:1.35};
+
+function simulate(days, trend){
+  const rec = [], work = days.filter(d => !d.holiday);
+  work.forEach((day, k) => {
+    const tr = trend(k, work.length);
+    EMP.forEach(e => {
+      if(!e.sched) return;
+      const dp = DEPT[e.dept];
+      const pA = Math.min(.5, dp.abs*e.fa*WA[day.w]*tr);
+      const pL = Math.min(.8, dp.late*e.fl*WL[day.w]*tr);
+      const r = rnd();
+      let st, arr = null, lm = 0;
+      if(r < pA){ st = "abs"; }
+      else if(r < pA+pL){ st = "late"; lm = Math.min(115, Math.round(6+expo(dp.lm*e.lm))); arr = 540+lm; }
+      else { st = "ok"; let early = Math.round(11+gauss()*8); if(early < -4) early = -Math.floor(rnd()*5); arr = Math.max(482, 540-early); }
+      rec.push({d:day.d, w:day.w, dept:e.dept, st, arr, lm});
+    });
+  });
+  return rec;
+}
+const REC = simulate(SEP, (k, n) => 1.12-.26*k/(n-1));
+const REC_A = simulate(AUG, () => 1.22);
+
+function aggregate(rec, f){
+  const byDay = new Map(); let ok = 0, late = 0, abs = 0, lm = 0; const arrs = [];
+  for(const x of rec){
+    if(f !== "all" && x.dept !== f) continue;
+    let o = byDay.get(x.d); if(!o){ o = {ok:0, late:0, abs:0, lm:0}; byDay.set(x.d, o); }
+    o[x.st]++; o.lm += x.lm;
+    if(x.st === "ok") ok++; else if(x.st === "late"){ late++; lm += x.lm; } else abs++;
+    if(x.arr !== null) arrs.push(x.arr);
+  }
+  const sched = ok+late+abs;
+  return {byDay, ok, late, abs, lm, sched, arrs, punct: sched ? ok/sched : 0};
+}
+const KEYS = ["all", ...DEPTS.map(d => d.id)];
+const AGG = {}, AGG_A = {}, HC = {}, NOS = {}, HEAT = {};
+KEYS.forEach(k => {
+  AGG[k] = aggregate(REC, k); AGG_A[k] = aggregate(REC_A, k);
+  const es = EMP.filter(e => k === "all" || e.dept === k);
+  HC[k] = es.filter(e => e.sched).length; NOS[k] = es.filter(e => !e.sched).length;
+  HEAT[k] = {}; [1,2,3,4,5].forEach(w => HEAT[k][w] = {late:0, sched:0});
+});
+REC.forEach(x => { ["all", x.dept].forEach(k => { HEAT[k][x.w].sched++; if(x.st === "late") HEAT[k][x.w].late++; }); });
+
+/* ---------- утилиты ---------- */
+function s(tag, attrs, parent){ const e = document.createElementNS(NS, tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(parent) parent.appendChild(e); return e; }
+function txt(parent, x, y, str, cls, anchor){ const t = s("text", {x, y, class:cls, "text-anchor":anchor||"start"}, parent); t.textContent = str; return t; }
+function topRounded(x, y, w, h, r){ r = Math.max(0, Math.min(r, w/2, h)); return `M${x},${y+h}V${y+r}A${r},${r} 0 0 1 ${x+r},${y}H${x+w-r}A${r},${r} 0 0 1 ${x+w},${y+r}V${y+h}Z`; }
+function niceScale(v, count){
+  count = count || 4;
+  const raw = Math.max(1, v)/count, mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/mag;
+  let step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10)*mag; step = Math.max(1, Math.round(step));
+  return {max: Math.ceil(Math.max(1, v)/step)*step, step};
+}
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const hexRgb = h => { h = h.replace("#",""); return [0,2,4].map(i => parseInt(h.slice(i, i+2), 16)); };
+function ramp(stops, t){ t = Math.max(0, Math.min(1, t)); const n = stops.length-1, i = Math.min(n-1, Math.floor(t*n)), f = t*n-i; const a = hexRgb(stops[i]), b = hexRgb(stops[i+1]); return a.map((v, k) => Math.round(v+(b[k]-v)*f)); }
+function lum(c){ const l = c.map(v => { v /= 255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); }); return .2126*l[0]+.7152*l[1]+.0722*l[2]; }
+
+/* ---------- тултип ---------- */
+const tip = $("#tip");
+function showTip(html, x, y){
+  tip.innerHTML = html; tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  let left = x+14, top = y-r.height-12;
+  if(left+r.width > innerWidth-8) left = x-r.width-14;
+  if(left < 8) left = 8;
+  if(top < 8) top = y+18;
+  tip.style.left = left+"px"; tip.style.top = top+"px";
+}
+function tipAtEl(html, el){ const r = el.getBoundingClientRect(); showTip(html, r.left+r.width/2, r.top+8); }
+const hideTip = () => { tip.hidden = true; };
+const trow = (cls, label, val) => `<div class="tr"><i class="sw ${cls}"></i><span>${label}</span><b>${val}</b></div>`;
+addEventListener("scroll", hideTip, {passive:true});
+
+/* ---------- состояние ---------- */
+let F = "all";
+const sel = $("#dept");
+DEPTS.forEach(d => { const o = document.createElement("option"); o.value = d.id; o.textContent = d.name; sel.appendChild(o); });
+sel.addEventListener("change", () => setFilter(sel.value));
+function setFilter(f){ F = f; sel.value = f; renderAll(); }
+
+/* ---------- KPI ---------- */
+function delta(v, unit, upGood){
+  if(!isFinite(v)) return {cls:"flat", text:"нет данных за август"};
+  if(Math.abs(v) < .05) return {cls:"flat", text:"как в августе"};
+  const good = upGood ? v > 0 : v < 0, arrow = v > 0 ? "▲" : "▼";
+  const t = unit === "pp" ? fmt1(Math.abs(v))+" п.п." : fmt0(Math.abs(v))+"%";
+  return {cls: good ? "good" : "bad", text: `${arrow} ${t} к августу`};
+}
+function renderTiles(){
+  const A = AGG[F], B = AGG_A[F];
+  const series = fn => WORK.map(d => fn(A.byDay.get(d.d)));
+  const rel = (a, b) => b ? ((a/N_SEP)/(b/N_AUG)-1)*100 : NaN;
+  const T = [
+    {l:"Пунктуальность", v:fmt1(A.punct*100), u:"%", sub:`вовремя ${fmt0(A.ok)} из ${fmt0(A.sched)} ${plural(A.sched,["смены","смен","смен"])}`,
+     d:delta((A.punct-B.punct)*100, "pp", true), sr:series(o => o.ok/(o.ok+o.late+o.abs))},
+    {l:"Опоздания", v:fmt0(A.late), u:"", sub:A.late ? `в среднем на ${fmt0(A.lm/A.late)} мин` : "опозданий нет",
+     d:delta(rel(A.late, B.late), "rel", false), sr:series(o => o.late)},
+    {l:"Неявки", v:fmt0(A.abs), u:plural(A.abs,["смена","смены","смен"]), sub:`${pct1(A.abs/A.sched)} запланированных смен`,
+     d:delta(rel(A.abs, B.abs), "rel", false), sr:series(o => o.abs)},
+    {l:"Потеряно из-за опозданий", v:fmt1(A.lm/60), u:"ч", sub:`≈ ${fmt1(A.lm/60/8)} рабочего дня`,
+     d:delta(rel(A.lm, B.lm), "rel", false), sr:series(o => o.lm/60)}
+  ];
+  const host = $("#tiles");
+  host.innerHTML = T.map((t, i) => `<div class="tile"><div class="tl">${t.l}</div><div class="tv">${t.v}${t.u ? `<span class="u">${t.u}</span>` : ""}</div><div class="ts">${t.sub}</div><div class="td ${t.d.cls}">${t.d.text}</div><svg class="sp" id="sp${i}" aria-hidden="true"></svg></div>`).join("");
+  T.forEach((t, i) => spark($("#sp"+i), t.sr));
+}
+function spark(svg, vals){
+  const W = svg.clientWidth || 200, H = 34, p = 5;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const mn = Math.min(...vals), mx = Math.max(...vals), rg = (mx-mn) || 1;
+  const x = i => p+i*(W-2*p)/(vals.length-1), y = v => H-p-(v-mn)/rg*(H-2*p);
+  const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+  s("path", {d:`M${x(0)},${H}L${pts.join("L")}L${x(vals.length-1)},${H}Z`, class:"sp-area"}, svg);
+  s("path", {d:"M"+pts.join("L"), class:"sp-line"}, svg);
+  s("circle", {cx:x(vals.length-1), cy:y(vals[vals.length-1]), r:3.5, class:"sp-dot"}, svg);
+}
+
+/* ---------- опоздания и неявки по дням ---------- */
+function renderDaily(){
+  const A = AGG[F], host = $("#daily");
+  host.innerHTML = "";
+  const W = Math.max(280, host.clientWidth), H = 236;
+  const wide = W >= 560;
+  const m = {l:30, r:6, t:24, b: wide ? 36 : 24};
+  const pw = W-m.l-m.r, ph = H-m.t-m.b;
+  const wk = []; let k = 0;
+  SEP.forEach((d, i) => { if(i > 0 && d.w < SEP[i-1].w) k++; wk.push(k); });
+  const gapU = .7, units = SEP.length+gapU*k, slot = pw/units;
+  const cx = i => m.l+(i+wk[i]*gapU+.5)*slot;
+  const cw = Math.min(24, slot*.62);
+  const vals = SEP.map(d => d.holiday ? null : A.byDay.get(d.d));
+  const peak = Math.max(1, ...vals.filter(Boolean).map(v => v.late+v.abs));
+  const {max, step} = niceScale(peak);
+  const y = v => m.t+ph-v/max*ph;
+
+  const svg = s("svg", {width:W, height:H, viewBox:`0 0 ${W} ${H}`, role:"img",
+    "aria-label":`Опоздания и неявки по рабочим дням 1–24 сентября, максимум ${peak} человек в день`}, host);
+  for(let v = 0; v <= max; v += step){
+    s("line", {x1:m.l, x2:W-m.r, y1:y(v), y2:y(v), class: v === 0 ? "axis" : "grid"}, svg);
+    txt(svg, m.l-6, y(v)+4, String(v), "tick", "end");
+  }
+  txt(svg, m.l-6, m.t-12, "чел.", "tick", "end");
+  const band = s("rect", {x:0, y:m.t, width:slot, height:ph, class:"band", opacity:0}, svg);
+
+  let maxI = -1, maxV = -1;
+  SEP.forEach((d, i) => {
+    const x0 = cx(i)-cw/2;
+    const lblCls = d.holiday ? "tick hol" : "tick";
+    txt(svg, cx(i), H-m.b+15, String(d.d), lblCls, "middle");
+    if(wide) txt(svg, cx(i), H-m.b+29, WD_S[d.w], lblCls+" wd", "middle");
+    if(d.holiday){ s("rect", {x:x0, y:m.t, width:cw, height:ph, rx:3, class:"holiday"}, svg); return; }
+    const v = vals[i], tot = v.late+v.abs;
+    if(tot > maxV){ maxV = tot; maxI = i; }
+    if(v.late > 0){
+      const yT = y(v.late);
+      s("path", {d: v.abs > 0 ? `M${x0},${y(0)}V${yT}H${x0+cw}V${y(0)}Z` : topRounded(x0, yT, cw, y(0)-yT, 4), class:"m-late"}, svg);
+    }
+    if(v.abs > 0){
+      const yT = y(tot), yB = v.late > 0 ? y(v.late)-2 : y(0);
+      if(yB-yT > .5) s("path", {d: topRounded(x0, yT, cw, yB-yT, 4), class:"m-abs"}, svg);
+    }
+  });
+  if(maxI >= 0){
+    SEP.forEach((d, i) => {
+      if(d.holiday || vals[i].late+vals[i].abs !== maxV) return;
+      const ax = cx(i), right = ax > W-40;
+      txt(svg, right ? ax+cw/2 : ax, y(maxV)-7, i === maxI ? `макс. ${maxV}` : String(maxV), "ann", right ? "end" : "middle");
+    });
+  }
+  SEP.forEach((d, i) => {
+    const hit = s("rect", {x:cx(i)-slot/2, y:m.t, width:slot, height:ph+m.b, class:"hit", tabindex:0,
+      "aria-label": d.holiday ? `${d.d} сентября, выходной` : `${d.d} сентября: опоздали ${vals[i].late}, не пришли ${vals[i].abs}`}, svg);
+    const html = () => {
+      if(d.holiday) return `<div class="th">${d.d} сентября, ${WD_F[d.w]}</div><div class="tf" style="border:0;margin:0;padding:0">Выходной — ${d.holiday}</div>`;
+      const v = vals[i], n = v.ok+v.late+v.abs;
+      return `<div class="th">${d.d} сентября, ${WD_F[d.w]}</div>`
+        + trow("ok", "Вовремя", `${v.ok} · ${fmt0(v.ok/n*100)}%`)
+        + trow("late", "Опоздали", v.late ? `${v.late} · ~${fmt0(v.lm/v.late)} мин` : "0")
+        + trow("abs", "Не пришли", v.abs);
+    };
+    const on = e => { band.setAttribute("x", cx(i)-slot/2); band.setAttribute("opacity", 1); showTip(html(), e.clientX, e.clientY); };
+    hit.addEventListener("pointermove", on);
+    hit.addEventListener("pointerdown", on);
+    hit.addEventListener("pointerleave", () => { band.setAttribute("opacity", 0); hideTip(); });
+    hit.addEventListener("focus", () => { band.setAttribute("x", cx(i)-slot/2); band.setAttribute("opacity", 1); tipAtEl(html(), hit); });
+    hit.addEventListener("blur", () => { band.setAttribute("opacity", 0); hideTip(); });
+  });
+
+  // таблица по дням
+  $("#dayTable").innerHTML = `<thead><tr><th>Дата</th><th class="n">Вовремя</th><th class="n">Опоздали</th><th class="n">Не пришли</th><th class="n">Пунктуальность</th></tr></thead><tbody>`
+    + SEP.map((d, i) => {
+      if(d.holiday) return `<tr class="hol"><td>${d.d} сен, ${WD_S[d.w]}</td><td colspan="4">выходной — ${d.holiday}</td></tr>`;
+      const v = vals[i], n = v.ok+v.late+v.abs;
+      return `<tr><td>${d.d} сен, ${WD_S[d.w]}</td><td class="n">${v.ok}</td><td class="n">${v.late}</td><td class="n">${v.abs}</td><td class="n">${pct1(v.ok/n)}</td></tr>`;
+    }).join("") + "</tbody>";
+}
+
+/* ---------- распределение времени прихода ---------- */
+function renderHist(){
+  const A = AGG[F], host = $("#hist");
+  host.innerHTML = "";
+  const B0 = 480, B1 = 660, BS = 5, nb = (B1-B0)/BS;
+  const cnt = new Array(nb).fill(0);
+  A.arrs.forEach(a => { const i = Math.max(0, Math.min(nb-1, Math.floor((a-B0)/BS))); cnt[i]++; });
+  const W = Math.max(260, host.clientWidth), H = 236;
+  const m = {l:32, r:8, t:24, b:24};
+  const pw = W-m.l-m.r, ph = H-m.t-m.b, bw = pw/nb;
+  const {max, step} = niceScale(Math.max(...cnt));
+  const y = v => m.t+ph-v/max*ph, xt = t => m.l+(t-B0)/(B1-B0)*pw;
+  const svg = s("svg", {width:W, height:H, viewBox:`0 0 ${W} ${H}`, role:"img", "aria-label":"Распределение времени прихода с 08:00 до 11:00"}, host);
+  for(let v = 0; v <= max; v += step){
+    s("line", {x1:m.l, x2:W-m.r, y1:y(v), y2:y(v), class: v === 0 ? "axis" : "grid"}, svg);
+    txt(svg, m.l-6, y(v)+4, String(v), "tick", "end");
+  }
+  s("rect", {x:xt(540), y:m.t, width:xt(545)-xt(540), height:ph, class:"grace"}, svg);
+  const w = Math.max(2, Math.min(24, bw-2));
+  cnt.forEach((c, i) => {
+    if(!c) return;
+    const t = B0+i*BS, x0 = m.l+i*bw+(bw-w)/2;
+    s("path", {d: topRounded(x0, y(c), w, y(0)-y(c), Math.min(4, w/2)), class: t < 545 ? "m-ok" : "m-late"}, svg);
+  });
+  s("line", {x1:xt(540), x2:xt(540), y1:m.t-4, y2:y(0), class:"rule"}, svg);
+  txt(svg, xt(540)+5, m.t-8, "09:00 начало смены", "rule-l", "start");
+  const ticks = pw >= 330 ? [480,510,540,570,600,630,660] : [480,540,600,660];
+  ticks.forEach(t => txt(svg, xt(t), H-m.b+16, hhmm(t), "tick", t === B0 ? "start" : t === B1 ? "end" : "middle"));
+  cnt.forEach((c, i) => {
+    const t = B0+i*BS;
+    const hit = s("rect", {x:m.l+i*bw, y:m.t, width:bw, height:ph, class:"hit"}, svg);
+    const on = e => showTip(`<div class="th">${hhmm(t)}–${hhmm(t+BS)}</div>` + trow(t < 545 ? "ok" : "late", t < 545 ? "Вовремя" : "Опоздание", `${c} ${plural(c,["отметка","отметки","отметок"])}`), e.clientX, e.clientY);
+    hit.addEventListener("pointermove", on); hit.addEventListener("pointerdown", on);
+    hit.addEventListener("pointerleave", hideTip);
+  });
+  const srt = [...A.arrs].sort((a, b) => a-b), n = srt.length;
+  const mean = srt.reduce((a, b) => a+b, 0)/n, med = srt[Math.floor((n-1)/2)], p90 = srt[Math.floor(.9*(n-1))];
+  const after10 = srt.filter(a => a >= 600).length;
+  $("#histFacts").innerHTML = `<span>Средний приход <b>${hhmm(mean)}</b></span><span>Медиана <b>${hhmm(med)}</b></span><span>90% отметились до <b>${hhmm(p90+1)}</b></span><span>После 10:00 <b>${after10}</b> ${plural(after10,["раз","раза","раз"])}</span>`;
+}
+
+/* ---------- тепловая карта ---------- */
+function renderHeat(){
+  const stops = ["--h0","--h1","--h2","--h3","--h4"].map(css);
+  let mx = 0;
+  KEYS.forEach(k => [1,2,3,4,5].forEach(w => { const c = HEAT[k][w]; mx = Math.max(mx, c.late/c.sched); }));
+  const top = Math.ceil(mx*100/5)*5/100;
+  const cell = (k, w) => {
+    const c = HEAT[k][w], r = c.late/c.sched, col = ramp(stops, r/top);
+    const ink = lum(col) > .32 ? "#221d12" : "#ffffff";
+    return `<div class="hc" role="cell" tabindex="0" data-k="${k}" data-w="${w}" style="background:rgb(${col});color:${ink}">${fmt0(r*100)}%</div>`;
+  };
+  const rowL = (k, label, extra) => `<button class="hl ${extra||""} ${F === k ? "sel" : ""}" data-f="${k}" role="rowheader">${label}</button>`;
+  let h = `<div class="hh"></div>` + [1,2,3,4,5].map(w => `<div class="hh" role="columnheader">${WD_S[w]}</div>`).join("");
+  DEPTS.forEach(d => { h += rowL(d.id, d.short) + [1,2,3,4,5].map(w => cell(d.id, w)).join(""); });
+  h += `<div class="hsep"></div>` + rowL("all", "Все подразделения", "total") + [1,2,3,4,5].map(w => cell("all", w)).join("");
+  const host = $("#heat"); host.innerHTML = h;
+  $("#hlegend").innerHTML = `<span>0%</span><span class="g" style="background:linear-gradient(90deg,${stops.join(",")})"></span><span>${fmt0(top*100)}% смен с опозданием</span>`;
+}
+function heatTip(el){
+  const k = el.dataset.k, w = +el.dataset.w, c = HEAT[k][w];
+  const name = k === "all" ? "Все подразделения" : DEPT[k].name;
+  return `<div class="th">${name}</div><div class="tr"><span>${WD_F[w][0].toUpperCase()+WD_F[w].slice(1)}</span><b>${pct1(c.late/c.sched)}</b></div><div class="tf">Опоздали ${c.late} из ${c.sched} ${plural(c.sched,["смены","смен","смен"])}</div>`;
+}
+const heatHost = $("#heat");
+heatHost.addEventListener("pointermove", e => { const el = e.target.closest(".hc"); if(el) showTip(heatTip(el), e.clientX, e.clientY); else hideTip(); });
+heatHost.addEventListener("pointerleave", hideTip);
+heatHost.addEventListener("focusin", e => { const el = e.target.closest(".hc"); if(el) tipAtEl(heatTip(el), el); });
+heatHost.addEventListener("focusout", hideTip);
+heatHost.addEventListener("click", e => { const b = e.target.closest(".hl"); if(b) setFilter(F === b.dataset.f ? "all" : b.dataset.f); });
+
+/* ---------- таблица подразделений ---------- */
+function renderTable(){
+  const rows = DEPTS.map(d => ({d, a: AGG[d.id]})).sort((x, y) => x.a.punct-y.a.punct);
+  const status = p => p >= .9 ? ["good","✓","Норма"] : p >= .8 ? ["warn","!","Внимание"] : ["bad","×","Риск"];
+  $("#deptTable").innerHTML = `<thead><tr><th>Подразделение</th><th class="n">Сотр.</th><th>Пунктуальность</th><th class="n">Ср. опоздание</th><th class="n">Неявки</th><th>Статус</th></tr></thead><tbody>`
+    + rows.map(({d, a}) => {
+      const st = status(a.punct);
+      return `<tr class="${F === d.id ? "sel" : ""}"><td><button class="rb" data-f="${d.id}">${d.name}</button></td><td class="n">${HC[d.id]}</td>`
+        + `<td><span class="pb"><span class="trk"><span class="fl" style="display:block;width:${(a.punct*100).toFixed(1)}%"></span></span>${pct1(a.punct)}</span></td>`
+        + `<td class="n">${a.late ? fmt0(a.lm/a.late)+" мин" : "—"}</td><td class="n">${a.abs}</td>`
+        + `<td><span class="pill ${st[0]}"><i><span>${st[1]}</span></i>${st[2]}</span></td></tr>`;
+    }).join("") + "</tbody>";
+}
+$("#deptTable").addEventListener("click", e => { const b = e.target.closest(".rb"); if(b) setFilter(F === b.dataset.f ? "all" : b.dataset.f); });
+
+/* ---------- сборка ---------- */
+function renderHeader(){
+  const n = HC[F], nos = NOS[F];
+  $("#hc").textContent = `${n} ${plural(n,["сотрудник","сотрудника","сотрудников"])} по графику` + (nos ? ` · ${nos} без графика` : "");
+}
+function renderAll(){ hideTip(); renderHeader(); renderTiles(); renderDaily(); renderHist(); renderHeat(); renderTable(); }
+function renderCharts(){ renderTiles(); renderDaily(); renderHist(); }
+
+renderAll();
+let lastW = 0, raf = 0;
+new ResizeObserver(entries => {
+  const w = Math.round(entries[0].contentRect.width);
+  if(w === lastW) return; lastW = w;
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(renderCharts);
+}).observe($(".wrap"));
+const rerender = () => requestAnimationFrame(renderAll);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", rerender);
+new MutationObserver(rerender).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(renderCharts));
+})();
+</script>
+</body>
+</html>
